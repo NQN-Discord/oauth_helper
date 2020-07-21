@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
    name="oauth_helper",
-   version="0.1.0",
+   version="0.1.1",
    description="A helper for Discord's oauth2 implementation",
    author='Blue',
    url="https://nqn.blue/",
