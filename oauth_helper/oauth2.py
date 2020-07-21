@@ -7,6 +7,7 @@ import time
 from cachetools import TTLCache
 
 from .response import HTTPError
+from .exceptions import TypeCheckError
 
 
 def oauth2_handler(config, bot: Client, allow_dbl: bool = False):
@@ -27,6 +28,11 @@ def oauth2_handler(config, bot: Client, allow_dbl: bool = False):
                 rtn = await handler(request)
             except InvalidTokenError:
                 return HTTPError(message="Invalid login token", status=403)
+            except TypeCheckError as err:
+                rtn = HTTPError(
+                    message=str(err),
+                    status=400
+                )
             if oauth and oauth.refresh_token != auth:
                 rtn["authorization"] = oauth.refresh_token
             return rtn
