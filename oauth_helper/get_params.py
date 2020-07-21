@@ -3,7 +3,7 @@ import json
 from collections import namedtuple
 
 from oauth_helper import HTTPError
-from ._exceptions import TypeCheckError, CastError, ArgsError
+from .exceptions import TypeCheckError, CastError, ArgsError
 
 
 async def get_params(request, annotations):
