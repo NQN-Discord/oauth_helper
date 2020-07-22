@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 from discord.http import HTTPClient, Route
 from discord.errors import HTTPException
 from discord import User, Client
@@ -10,7 +10,7 @@ from .response import HTTPError
 from .exceptions import TypeCheckError
 
 
-def oauth2_handler(config, bot: Client, allow_dbl: bool = False):
+def oauth2_handler(config: Dict[str, str], bot: Client, allow_dbl: bool = False):
     wrapper = oauth2_wrapper(config, bot)
 
     async def _middleware(app, handler):
@@ -20,10 +20,10 @@ def oauth2_handler(config, bot: Client, allow_dbl: bool = False):
                 request["oauth"] = oauth = None
             else:
                 try:
-                    request["oauth"] = oauth = await wrapper.from_refresh_token(auth, f"{config.web['url']}/login")
+                    request["oauth"] = oauth = await wrapper.from_refresh_token(auth, config["refresh_uri"])
                 except InvalidTokenError:
                     return HTTPError(message="Invalid login token", status=403)
-            request["from_code"] = lambda code: wrapper.from_code(code, f"{config.web['url']}/login")
+            request["from_code"] = wrapper.from_code
             try:
                 rtn = await handler(request)
             except InvalidTokenError:
@@ -138,16 +138,18 @@ def oauth2_wrapper(config, bot):
         @classmethod
         async def from_code(cls, code, redirect_uri):
             config_data = {
-                "client_id": config.discord["client_id"],
-                "client_secret": config.discord["client_secret"],
+                "client_id": config["client_id"],
+                "client_secret": config["client_secret"],
                 "grant_type": "authorization_code",
                 "code": code,
                 "redirect_uri": redirect_uri,
             }
             async with aiohttp.ClientSession() as session:
-                async with session.post("https://discord.com/api/v6/oauth2/token",
-                                        data=config_data,
-                                        headers={"Content-Type": "application/x-www-form-urlencoded"}) as res:
+                async with session.post(
+                        "https://discord.com/api/v6/oauth2/token",
+                        data=config_data,
+                        headers={"Content-Type": "application/x-www-form-urlencoded"}
+                ) as res:
                     return cls.create_from_json(await res.json(), redirect_uri)
 
         @classmethod
@@ -159,32 +161,38 @@ def oauth2_wrapper(config, bot):
                     **cache.get_token(refresh_token))
             except NotInCacheError:
                 pass
-            return cls.create_from_json(await cls._create_from_refresh_token(refresh_token, redirect_uri),
-                                        redirect_uri)
+            return cls.create_from_json(
+                await cls._create_from_refresh_token(refresh_token, redirect_uri),
+                redirect_uri
+            )
 
         @staticmethod
         async def _create_from_refresh_token(refresh_token, redirect_uri):
             config_data = {
-                "client_id": config.discord["client_id"],
-                "client_secret": config.discord["client_secret"],
+                "client_id": config["client_id"],
+                "client_secret": config["client_secret"],
                 "grant_type": "refresh_token",
                 "refresh_token": refresh_token,
                 "redirect_uri": redirect_uri
             }
             async with aiohttp.ClientSession() as session:
-                async with session.post("https://discord.com/api/v6/oauth2/token",
-                                        data=config_data,
-                                        headers={"Content-Type": "application/x-www-form-urlencoded"}) as res:
+                async with session.post(
+                        "https://discord.com/api/v6/oauth2/token",
+                        data=config_data,
+                        headers={"Content-Type": "application/x-www-form-urlencoded"}
+                ) as res:
                     return await res.json()
 
         @classmethod
         def create_from_json(cls, json, redirect_uri):
             if "refresh_token" not in json:
                 raise InvalidTokenError()
-            cache.add_access_token(json["refresh_token"],
-                                   json["access_token"],
-                                   json["expires_in"],
-                                   json["scope"])
+            cache.add_access_token(
+                json["refresh_token"],
+                json["access_token"],
+                json["expires_in"],
+                json["scope"]
+            )
             return Oauth2(
                 json["access_token"],
                 json["refresh_token"],
