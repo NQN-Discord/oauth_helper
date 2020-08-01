@@ -1,4 +1,11 @@
-from typing import GenericMeta, Any, NoReturn, Type, Dict, List, Set, Optional, Collection
+from typing import Any, NoReturn, Type, Dict, List, Set, Optional, Collection
+try:
+    from typing import GenericMeta
+except ImportError:
+    from typing import _GenericAlias
+    py37 = True
+else:
+    py37 = False
 import json
 from collections import namedtuple
 
@@ -45,16 +52,27 @@ def is_namedtuple(x: Any) -> bool:
 def typecheck_single(x: Any, t: Type, cast: bool = False) -> Optional[Any]:
     if t is Any:
         return
-    if isinstance(t, GenericMeta):
-        if x == "":
-            return []
-        if t.__origin__ is List:
-            return typecheck_collection(x, t, list)
-        if t.__origin__ is Set:
-            return typecheck_collection(x, t, (set, list)) # Special case these for deserialising being crap
-        if t.__origin__ is Dict:
-            return typecheck_dict(x, t)
-    elif str(type(t)) == "typing.Union":
+    if py37:
+        if isinstance(t, _GenericAlias):
+            if x == "":
+                return []
+            if t._name == "List":
+                return typecheck_collection(x, t, list)
+            if t._name == "Set":
+                return typecheck_collection(x, t, (set, list)) # Special case these for deserialising being crap
+            if t._name == "Dict":
+                return typecheck_dict(x, t)
+    else:
+        if isinstance(t, GenericMeta):
+            if x == "":
+                return []
+            if t.__origin__ is List:
+                return typecheck_collection(x, t, list)
+            if t.__origin__ is Set:
+                return typecheck_collection(x, t, (set, list)) # Special case these for deserialising being crap
+            if t.__origin__ is Dict:
+                return typecheck_dict(x, t)
+    if str(type(t)) == "typing.Union":
         for t2 in t.__args__:
             try:
                 return typecheck_single(x, t2, cast)
