@@ -125,11 +125,12 @@ def oauth2_wrapper(config, bot):
             else:
                 return []
 
-        async def join_guild(self, guild_id: int, user_id: int, access_token: str) -> Optional[str]:
+        async def join_guild(self, guild_id: int, user_id: int, access_token: str, **kwargs) -> Optional[str]:
             r = Route('PUT', '/guilds/{guild_id}/members/{user_id}', guild_id=guild_id, user_id=user_id)
             try:
                 await bot.http.request(r, json={
-                    "access_token": access_token
+                    "access_token": access_token,
+                    **kwargs
                 })
                 return None
             except HTTPException as e:
