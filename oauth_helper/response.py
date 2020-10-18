@@ -37,14 +37,18 @@ class HTTPError(Response, Exception):
         )
 
 
-async def convert_response(app, handler):
-    async def _inner(request: Request):
-        try:
-            rtn = await handler(request)
-        except HTTPError as err:
-            rtn = err
-        if request.method == "OPTIONS":
-            return rtn
-        assert isinstance(rtn, Response), "Not using local response class."
-        return rtn.to_response()
-    return _inner
+def convert_response(ignore):
+    async def _outer(app, handler):
+        async def _inner(request: Request):
+            try:
+                rtn = await handler(request)
+            except HTTPError as err:
+                rtn = err
+            if request.method == "OPTIONS":
+                return rtn
+            if request.path in ignore:
+                return rtn
+            assert isinstance(rtn, Response), "Not using local response class."
+            return rtn.to_response()
+        return _inner
+    return _outer
