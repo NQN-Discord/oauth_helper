@@ -13,7 +13,7 @@ from oauth_helper import HTTPError
 from .exceptions import TypeCheckError, CastError, ArgsError
 
 
-async def get_params(request, annotations):
+async def get_params(request, annotations, cast: bool = True):
     if request.method in {"POST", "PUT", "DELETE"}:
         try:
             query = await request.json()
@@ -28,7 +28,7 @@ async def get_params(request, annotations):
             else:
                 query[key] = request.rel_url.query.get(key)
     try:
-        typecheck_class(query, annotations, cast=True)
+        typecheck_class(query, annotations, cast=cast)
     except CastError as e:
         raise HTTPError(status=400,
                         message=f"{e.value} was not of type `{e.type.__name__}`")
