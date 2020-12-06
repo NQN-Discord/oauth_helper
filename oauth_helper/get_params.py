@@ -62,6 +62,15 @@ def typecheck_single(x: Any, t: Type, cast: bool = False) -> Optional[Any]:
                 return typecheck_collection(x, t, (set, list)) # Special case these for deserialising being crap
             if t._name == "Dict":
                 return typecheck_dict(x, t)
+            if repr(t).startswith("typing.Union"):
+                for t2 in t.__args__:
+                    try:
+                        return typecheck_single(x, t2, cast)
+                    except TypeCheckError:
+                        pass
+                raise TypeCheckError(f"Typecheck failure: {t}, given {type(x)} ({x!r})")
+        elif is_namedtuple(t):
+            return typecheck_class(x, t.__annotations__)
     else:
         if isinstance(t, GenericMeta):
             if x == "":
@@ -72,15 +81,15 @@ def typecheck_single(x: Any, t: Type, cast: bool = False) -> Optional[Any]:
                 return typecheck_collection(x, t, (set, list)) # Special case these for deserialising being crap
             if t.__origin__ is Dict:
                 return typecheck_dict(x, t)
-    if str(type(t)) == "typing.Union":
-        for t2 in t.__args__:
-            try:
-                return typecheck_single(x, t2, cast)
-            except TypeCheckError:
-                pass
-        raise TypeCheckError(f"Typecheck failure: {t}, given {type(x)} ({x!r})")
-    elif is_namedtuple(t):
-        return typecheck_class(x, t.__annotations__)
+        if str(type(t)) == "typing.Union":
+            for t2 in t.__args__:
+                try:
+                    return typecheck_single(x, t2, cast)
+                except TypeCheckError:
+                    pass
+            raise TypeCheckError(f"Typecheck failure: {t}, given {type(x)} ({x!r})")
+        elif is_namedtuple(t):
+            return typecheck_class(x, t.__annotations__)
     try:
         isinstance(x, t)
     except TypeError:
