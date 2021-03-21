@@ -16,7 +16,7 @@ def oauth2_handler(config: Dict[str, str], bot: Client, allow_dbl: bool = False)
     async def _middleware(app, handler):
         async def _inner(request):
             auth = request.headers.get("Authorization", None)
-            if auth in [None, ""] or (allow_dbl and request.headers.get("User-Agent") in {"DBL", ""}):
+            if auth in [None, ""] or (allow_dbl and "Top.gg" in request.headers.get("User-Agent")):
                 request["oauth"] = oauth = None
             else:
                 try:
