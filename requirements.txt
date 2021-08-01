@@ -1,2 +1,6 @@
 discord.py
 cachetools
+
+pytest-asyncio
+pytest-mock
+mock

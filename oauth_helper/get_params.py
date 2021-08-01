@@ -54,21 +54,21 @@ def typecheck_single(x: Any, t: Type, cast: bool = False) -> Optional[Any]:
         return
     if py37:
         if isinstance(t, _GenericAlias):
-            if x == "":
-                return []
-            if t._name == "List":
-                return typecheck_collection(x, t, list)
-            if t._name == "Set":
-                return typecheck_collection(x, t, (set, list)) # Special case these for deserialising being crap
-            if t._name == "Dict":
-                return typecheck_dict(x, t)
-            if repr(t).startswith("typing.Union"):
+            if repr(t).startswith(("typing.Union", "typing.Optional")):
                 for t2 in t.__args__:
                     try:
                         return typecheck_single(x, t2, cast)
                     except TypeCheckError:
                         pass
                 raise TypeCheckError(f"Typecheck failure: {t}, given {type(x)} ({x!r})")
+            if t._name == "Dict":
+                return typecheck_dict(x, t)
+            if x == "":
+                return []
+            if t._name == "List":
+                return typecheck_collection(x, t, list)
+            if t._name == "Set":
+                return typecheck_collection(x, t, (set, list)) # Special case these for deserialising being crap
         elif is_namedtuple(t):
             return typecheck_class(x, t.__annotations__)
     else:
