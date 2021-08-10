@@ -121,7 +121,7 @@ def oauth2_wrapper(config, bot):
         async def get_guilds(self):
             if "guilds" in self.scopes:
                 async with self as http:
-                    return await http.get_guilds(100)
+                    return await http.get_guilds(200)
             else:
                 return []
 
