@@ -18,14 +18,15 @@ class Response:
 
 
 class TextResponse(Response):
-    def __init__(self, message: str, status: int = 200):
+    def __init__(self, message: str, status: int = 200, *, content_type: str = None):
         super(TextResponse, self).__init__(
             status=status,
             message=message
         )
+        self.content_type = content_type
 
     def to_response(self):
-        return WebResponse(text=self.attrs["message"], status=self.status)
+        return WebResponse(text=self.attrs["message"], status=self.status, content_type=self.content_type)
 
 
 class HTTPError(Response, Exception):
