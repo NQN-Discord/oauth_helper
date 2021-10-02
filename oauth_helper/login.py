@@ -4,6 +4,12 @@ from typing import Optional
 from .response import HTTPError
 
 
+not_logged_in_error = HTTPError(
+    message="You need to be logged in to use this endpoint",
+    status=403
+)
+
+
 def require_logged_in(func):
     func.require_logged_in = True
     return func
@@ -13,10 +19,7 @@ async def attach_user(app, handler):
     async def _inner(request: Request):
         if request["oauth"] is None:
             if getattr(handler, "require_logged_in", False):
-                return HTTPError(
-                    message="You need to be logged in to use this endpoint",
-                    status=403
-                )
+                return not_logged_in_error
             request["user"] = None
         else:
             request["user"] = User(request["oauth"])
