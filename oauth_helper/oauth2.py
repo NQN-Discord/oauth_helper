@@ -5,6 +5,7 @@ from discord import User, Client
 import aiohttp
 import time
 from cachetools import TTLCache
+import asyncio
 
 from .response import HTTPError
 from .exceptions import TypeCheckError
@@ -81,9 +82,14 @@ def oauth2_wrapper(config, bot):
             return f"Oauth2(access_token={self.access_token!r}, refresh_token={self.refresh_token!r}, redirect_uri={self.redirect_uri!r}, scope={' '.join(self.scopes)!r})"
 
         async def __aenter__(self):
-            self._http = HTTPClient()
-            self._http._HTTPClient__session = aiohttp.ClientSession(connector=self._http.connector)
+            loop = asyncio.get_event_loop()
+            connector = aiohttp.TCPConnector(loop=loop, limit=0)
+            self._http = HTTPClient(connector=connector, loop=loop)
+            self._http._HTTPClient__session = self._http._HTTPClient__session = aiohttp.ClientSession(connector=connector)
             self._http.token = f"Bearer {self.access_token}"
+            self._http._global_over = asyncio.Event()
+            self._http._global_over.set()
+
             orig_request = self._http.request
 
             async def request(route, *args, **kwargs):
