@@ -3,7 +3,11 @@ from collections import namedtuple
 from typing import Union, List, Dict, Any, Optional, NamedTuple
 
 from oauth_helper.exceptions import TypeCheckError, ArgsError
-from oauth_helper.get_params import is_namedtuple, typecheck_single, typecheck_collection
+from oauth_helper.get_params import (
+    is_namedtuple,
+    typecheck_single,
+    typecheck_collection,
+)
 
 
 test_named_tuple = namedtuple("test", ("a", "b"))
@@ -22,8 +26,13 @@ def test_is_namedtuple():
 
 
 def test_collection_unhappy():
-    with pytest.raises(TypeCheckError):
+    with pytest.raises(TypeCheckError) as e:
         typecheck_collection("", List[int], list)
+    assert e.type is TypeCheckError
+    assert (
+        e.value.args[0]
+        == "Typecheck failure: typing.List[int], given <class 'str'> ('')"
+    )
 
 
 def test_single_happy():
@@ -33,8 +42,12 @@ def test_single_happy():
 
 
 def test_single_unhappy():
-    with pytest.raises(TypeCheckError):
+    with pytest.raises(TypeCheckError) as e:
         typecheck_single(5, str)
+    assert e.type is TypeCheckError
+    assert (
+        e.value.args[0] == "Typecheck failure: <class 'str'>, given <class 'int'> (5)"
+    )
 
 
 def test_list_happy():
@@ -45,7 +58,7 @@ def test_list_happy():
 
 
 def test_list_unhappy():
-    with pytest.raises(TypeCheckError):
+    with pytest.raises(TypeCheckError) as e:
         typecheck_single([1, 2, 3], List[str])
     with pytest.raises(TypeCheckError):
         typecheck_single([[1], [[]], [2, 3]], List[List[int]])
@@ -98,4 +111,3 @@ def test_namedtuple_unhappy():
         typecheck_single({"foo": 1, "bar": []}, AnnotatedNamedTuple)
     with pytest.raises(ArgsError):
         typecheck_single({"foo": 1}, AnnotatedNamedTuple)
-
